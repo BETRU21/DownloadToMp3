@@ -1,7 +1,7 @@
 import youtube_dl
 
 class Download2Mp3:
-    def __init__(self):
+    def __init__(self, view=False):
         self.notDownloaded = []
         self.setupDownloadParam()
 
@@ -24,12 +24,16 @@ class Download2Mp3:
     # Non-Public functions
 
     def callableHook(self, response):
-        if response["status"] == "downloading":
-            dlPercent = round((response["downloaded_bytes"]*100)/response["total_bytes"],1)
-            eta = response["eta"]
-            downloadPercent = f"{dlPercent}%"
-            estimatedTime = f"{eta}s"
-            return downloadPercent, estimatedTime
+        if view == True:
+            if response["status"] == "downloading":
+                dlPercent = round((response["downloaded_bytes"]*100)/response["total_bytes"],1)
+                eta = response["eta"]
+                downloadPercent = f"{dlPercent}%"
+                estimatedTime = f"{eta}s"
+
+                self.view.downloadStatus(downloadPercent, estimatedTime)
+        else:
+            pass
 
     def setupDownloadParam(self):
         self.ydlParams = {

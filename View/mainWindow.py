@@ -12,7 +12,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
-        self.modelDownload = Download2Mp3()
         self.createsComponentsAndPointers()
         self.setupWindowTabs()
 
@@ -24,8 +23,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def createsComponentsAndPointers(self):
         # Components
-        self.downloadView = ViewDownload(self.modelDownload)
+        self.modelDownload = Download2Mp3(view=True)
+        self.downloadView = ViewDownload()
         self.consoleView = ViewConsole()
 
         # Pointers
         self.downloadView.consoleView = self.consoleView
+        self.downloadView.modelDownload = self.modelDownload
+        self.modelDownload.View = self.downloadView
