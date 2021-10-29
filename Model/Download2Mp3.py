@@ -1,7 +1,8 @@
 import youtube_dl
 
 class Download2Mp3:
-    def __init__(self, view=False):
+    def __init__(self, CallableHook=None):
+        self.hook = CallableHook
         self.notDownloaded = []
         self.setupDownloadParam()
 
@@ -23,25 +24,23 @@ class Download2Mp3:
 
     # Non-Public functions
 
-    def callableHook(self, response):
-        if view == True:
-            if response["status"] == "downloading":
-                dlPercent = round((response["downloaded_bytes"]*100)/response["total_bytes"],1)
-                eta = response["eta"]
-                downloadPercent = f"{dlPercent}%"
-                estimatedTime = f"{eta}s"
-
-                self.view.downloadStatus(downloadPercent, estimatedTime)
-        else:
-            pass
-
     def setupDownloadParam(self):
-        self.ydlParams = {
-        "progress_hooks": [self.callableHook],
-        'outtmpl': 'downloadMusics/%(title)s.%(ext)s',
-        'noplaylist': True,
-        'format': 'bestaudio/best',
-        'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',}],}
+        if self.hook == None:
+            self.ydlParams = {
+            'outtmpl': 'downloadMusics/%(title)s.%(ext)s',
+            'noplaylist': True,
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',}],}
+        else:
+            self.ydlParams = {
+            "progress_hooks": [self.hook],
+            'outtmpl': 'downloadMusics/%(title)s.%(ext)s',
+            'noplaylist': True,
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',}],}
