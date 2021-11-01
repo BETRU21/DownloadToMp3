@@ -5,6 +5,7 @@ from PyQt5.QtCore import pyqtSignal, QThread
 from PyQt5 import uic
 import sys
 import os
+from threading import *
 
 MainWindowPath = os.path.dirname(os.path.realpath(__file__)) + '/ui{}DownloadWindow.ui'.format(os.sep)
 Ui_MainWindow, QtBaseClass = uic.loadUiType(MainWindowPath)
