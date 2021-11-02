@@ -1,5 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, QThread
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QFileDialog
 from PyQt5 import uic
 from Model.Download2Mp3 import Download2Mp3
 from tools.ThreadWorker import Worker
@@ -19,6 +19,7 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.connectWidgets()
         self.model = Download2Mp3(self.callableHook)
         self.listSong = []
+        self.filePath = ""
 
         self.singleSongWorker = Worker(self.downloadSingleSong)
         self.singleSongThread = QThread()
@@ -39,11 +40,27 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.pb_linkDL.clicked.connect(self.startSingleDownload)
         self.progressSignal.connect(self.updateProgressBar)
         self.estimatedTimeSignal.connect(self.showEstimatedTime)
-        # self.pb_listDL.clicked.connect()
-        # self.pb_file.clicked.connect()
-        # self.ind_file
-        # self.ind_count
-        # self.le_link
+        self.pb_fileDL.clicked.connect(self.startListDownload)
+        self.pb_file.clicked.connect(self.setFilePath)
+
+    def setFilePath(self):
+        try:
+            self.filePath = QFileDialog.getOpenFileName(self, "Select File")[0]
+            if self.filePath == "":
+                raise ValueError("filePath is empty.")
+            fich = open(self.filePath, "r")
+            musicList = list(fich)
+            fich.close()
+            self.listSong = []
+            for j in musicList:
+                elem = j.replace("\n", "")
+                self.listSong.append(str(elem))
+            self.consoleView.showOnConsole("filePath found !", "green")
+            self.ind_file.setStyleSheet("QCheckBox::indicator{background-color: rgb(0,255,0);}")
+        except Exception as e:
+            e = str(e)
+            self.ind_file.setStyleSheet("QCheckBox::indicator{background-color: rgb(255,0,0);}")
+            self.consoleView.showOnConsole(e, "red")
 
     def startSingleDownload(self):
         self.pBar_download.setValue(0)
@@ -54,6 +71,7 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.listSongThread.start()
 
     def downloadMultipleSong(self):
+        print("allo")
         listSong = self.listSong
         for url in listSong:
             try:
