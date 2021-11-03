@@ -16,8 +16,9 @@ class Download2Mp3:
                 ydl.download([url])
         except Exception as e:
             e = str(e)
-            self.notDownloaded.append(url)
-            raise RuntimeError("Something went wrong.")
+            self.notDownloaded.append(url)(e)
+            raise RuntimeError(e)
+            #raise RuntimeError("Something went wrong.")
 
     def musicsNotDownloaded(self):
         return self.notDownloaded

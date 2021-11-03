@@ -14,6 +14,7 @@ class ViewDownload(QWidget, Ui_MainWindow):
     estimatedTimeSignal = pyqtSignal(str)
     rankSignal = pyqtSignal(tuple)
     errorSignal = pyqtSignal(str)
+    resetIndicatorsSignal = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
@@ -46,6 +47,7 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.pb_fileDL.clicked.connect(self.startListDownload)
         self.pb_file.clicked.connect(self.setFilePath)
         self.errorSignal.connect(self.errorToConsole)
+        self.resetIndicatorsSignal.connect(self.resetIndicators)
 
     def setFilePath(self):
         try:
@@ -95,6 +97,7 @@ class ViewDownload(QWidget, Ui_MainWindow):
         except Exception as error:
             error = str(error)
             self.errorSignal.connect(error)
+            self.resetIndicatorsSignal.emit(True)
 
     def downloadSingleSong(self):
         try:
@@ -104,11 +107,9 @@ class ViewDownload(QWidget, Ui_MainWindow):
             self.rankSignal.emit((1,1))
             self.model.downloadMusicFile(url)
         except Exception as error:
-            if str(error) == "url is empty.":
-                error = "url is empty."
-            else:
-                error = "invalid url."
+            error = str(error)
             self.errorSignal.emit(error)
+            self.resetIndicatorsSignal.emit(True)
 
     def updateProgressBar(self, downloadPercent):
         self.pBar_download.setValue(downloadPercent)
@@ -124,11 +125,18 @@ class ViewDownload(QWidget, Ui_MainWindow):
     def errorToConsole(self, error):
         self.consoleView.showOnConsole(error, "red")
 
+    def resetIndicators(self, bool):
+        self.ind_download.setText("")
+        self.ind_count.setText("")
+
     def callableHook(self, response):
         if response["status"] == "downloading":
             downloadPercent = round((response["downloaded_bytes"]*100)/response["total_bytes"],0)
             eta = response["eta"]
-            estimatedTime = f"{eta}s"
+            if eta < 60:
+                estimatedTime = f"{eta}s"
+            else:
+                estimatedTime = f"{eta//60}min{eta%60}s"
 
             self.progressSignal.emit(downloadPercent)
             self.estimatedTimeSignal.emit(estimatedTime)

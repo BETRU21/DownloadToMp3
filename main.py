@@ -5,6 +5,8 @@ import ctypes
 import sys
 import os
 
+os.system("mode 15,1")
+
 if sys.platform == "win32":
     myappid = u"mycompany.myproduct.subproduct.version" # arbitrary string
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
