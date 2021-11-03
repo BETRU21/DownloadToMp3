@@ -1,5 +1,5 @@
+from PyQt5.QtWidgets import QWidget, QFileDialog
 from PyQt5.QtCore import pyqtSignal, QThread
-from PyQt5.QtWidgets import QWidget
 from PyQt5 import uic
 from Model.Download2Mp3 import Download2Mp3
 from tools.ThreadWorker import Worker
@@ -12,6 +12,8 @@ class ViewDownload(QWidget, Ui_MainWindow):
 
     progressSignal = pyqtSignal(int)
     estimatedTimeSignal = pyqtSignal(str)
+    rankSignal = pyqtSignal(tuple)
+    errorSignal = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -19,6 +21,7 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.connectWidgets()
         self.model = Download2Mp3(self.callableHook)
         self.listSong = []
+        self.failedDownload = []
 
         self.singleSongWorker = Worker(self.downloadSingleSong)
         self.singleSongThread = QThread()
@@ -39,11 +42,31 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.pb_linkDL.clicked.connect(self.startSingleDownload)
         self.progressSignal.connect(self.updateProgressBar)
         self.estimatedTimeSignal.connect(self.showEstimatedTime)
-        # self.pb_listDL.clicked.connect()
-        # self.pb_file.clicked.connect()
-        # self.ind_file
-        # self.ind_count
-        # self.le_link
+        self.rankSignal.connect(self.showRankOfDownload)
+        self.pb_fileDL.clicked.connect(self.startListDownload)
+        self.pb_file.clicked.connect(self.setFilePath)
+        self.errorSignal.connect(self.errorToConsole)
+
+    def setFilePath(self):
+        try:
+            self.filePath = QFileDialog.getOpenFileName(self, "Select File")[0]
+            if self.filePath == "":
+                raise ValueError("filePath is empty.")
+            fich = open(self.filePath, "r")
+            musicList = list(fich)
+            fich.close()
+            self.listSong = []
+            for j in musicList:
+                elem = j.replace("\n", "")
+                self.listSong.append(str(elem))
+            self.consoleView.showOnConsole("filePath found !", "green")
+            self.ind_file.setStyleSheet("QCheckBox::indicator{background-color: rgb(0,255,0);}")
+            listLen = f"{len(self.listSong)} Songs"
+            self.ind_song.setText(listLen)
+        except Exception as error:
+            error = str(error)
+            self.ind_file.setStyleSheet("QCheckBox::indicator{background-color: rgb(255,0,0);}")
+            self.errorSignal.emit(error)
 
     def startSingleDownload(self):
         self.pBar_download.setValue(0)
@@ -54,22 +77,52 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.listSongThread.start()
 
     def downloadMultipleSong(self):
-        listSong = self.listSong
-        for url in listSong:
-            try:
-                self.model.downloadMusicFile(url)
-            except Exception as e:
-                e = str(e)
+        try:
+            self.failedDownload = [] # Finish this part.
+            listSong = self.listSong
+            lenght = len(listSong)
+
+            rank = 0
+            for url in listSong:
+                try:
+                    rank += 1
+                    self.rankSignal.emit((rank, lenght))
+                    self.model.downloadMusicFile(url)
+                except Exception as e:
+                    self.failedDownload.append(url)
+            self.ind_download.setText("")
+            self.ind_count.setText("")
+        except Exception as error:
+            error = str(error)
+            self.errorSignal.connect(error)
 
     def downloadSingleSong(self):
-        url = self.le_link.text()
-        self.model.downloadMusicFile(url)
+        try:
+            url = self.le_link.text()
+            if url == "":
+                raise ValueError("url is empty.")
+            self.rankSignal.emit((1,1))
+            self.model.downloadMusicFile(url)
+        except Exception as error:
+            if str(error) == "url is empty.":
+                error = "url is empty."
+            else:
+                error = "invalid url."
+            self.errorSignal.emit(error)
 
     def updateProgressBar(self, downloadPercent):
         self.pBar_download.setValue(downloadPercent)
 
     def showEstimatedTime(self, estimatedTime):
         self.ind_count.setText(estimatedTime)
+
+    def showRankOfDownload(self, infos):
+        rank, lenght = infos
+        text = f"{rank}/{lenght}"
+        self.ind_download.setText(text)
+
+    def errorToConsole(self, error):
+        self.consoleView.showOnConsole(error, "red")
 
     def callableHook(self, response):
         if response["status"] == "downloading":

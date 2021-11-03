@@ -10,9 +10,4 @@ class Worker(QObject):
         # progress = pyqtSignal(int)
 
     def run(self):
-        try:
-            self.function(*self.args, **self.kwargs)
-        except Exception as e:
-            print("ERROR: ", e)
-        finally:
-            pass
+        self.function(*self.args, **self.kwargs)

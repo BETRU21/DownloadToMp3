@@ -73,10 +73,20 @@
              <bool>false</bool>
             </property>
             <property name="styleSheet">
-             <string notr="true">QCheckBox::indicator{background-color: rgb(0, 0, 0);}</string>
+             <string notr="true">QCheckBox::indicator{background-color: rgb(48, 53, 64);}</string>
             </property>
             <property name="text">
              <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="ind_song">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>#Song</string>
             </property>
            </widget>
           </item>
@@ -99,6 +109,16 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QPushButton" name="ind_download">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
      <item>
       <widget class="QProgressBar" name="pBar_download">
        <property name="styleSheet">
