@@ -6,8 +6,6 @@ class Worker(QObject):
         self.function = workerFunction
         self.args = args
         self.kwargs = kwargs
-        # finished = pyqtSignal()
-        # progress = pyqtSignal(int)
 
     def run(self):
         self.function(*self.args, **self.kwargs)

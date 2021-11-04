@@ -15,6 +15,7 @@ class ViewDownload(QWidget, Ui_MainWindow):
     rankSignal = pyqtSignal(tuple)
     errorSignal = pyqtSignal(str)
     resetIndicatorsSignal = pyqtSignal(bool)
+    threadSignalFinished = pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
@@ -48,6 +49,15 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.pb_file.clicked.connect(self.setFilePath)
         self.errorSignal.connect(self.errorToConsole)
         self.resetIndicatorsSignal.connect(self.resetIndicators)
+        self.threadSignalFinished.connect(self.killThread)
+
+    def killThread(self, ID):
+        if ID == 0:
+            self.singleSongThread.quit()
+        if ID == 1:
+            self.listSongThread.quit()
+        else:
+            pass
 
     def setFilePath(self):
         try:
@@ -71,14 +81,21 @@ class ViewDownload(QWidget, Ui_MainWindow):
             self.errorSignal.emit(error)
 
     def startSingleDownload(self):
+        self.listSongThread.requestInterruption()
+        self.singleSongThread.requestInterruption()
         self.pBar_download.setValue(0)
+        print("startSingleDownload")
         self.singleSongThread.start()
 
     def startListDownload(self):
+        self.listSongThread.requestInterruption()
+        self.singleSongThread.requestInterruption()
         self.pBar_download.setValue(0)
+        print("startListDownload")
         self.listSongThread.start()
 
     def downloadMultipleSong(self):
+        print("downloadMultipleSong")
         try:
             self.failedDownload = [] # Finish this part.
             listSong = self.listSong
@@ -92,20 +109,22 @@ class ViewDownload(QWidget, Ui_MainWindow):
                     self.model.downloadMusicFile(url)
                 except Exception as e:
                     self.failedDownload.append(url)
-            self.ind_download.setText("")
-            self.ind_count.setText("")
+            self.resetIndicatorsSignal.emit(True)
+            self.threadSignalFinished.emit(1)
         except Exception as error:
             error = str(error)
             self.errorSignal.connect(error)
             self.resetIndicatorsSignal.emit(True)
 
     def downloadSingleSong(self):
+        print("downloadSingleSong")
         try:
             url = self.le_link.text()
             if url == "":
                 raise ValueError("url is empty.")
             self.rankSignal.emit((1,1))
             self.model.downloadMusicFile(url)
+            self.threadSignalFinished.emit(0)
         except Exception as error:
             error = str(error)
             self.errorSignal.emit(error)
