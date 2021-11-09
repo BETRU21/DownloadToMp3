@@ -14,6 +14,7 @@ class ViewDownload(QWidget, Ui_MainWindow):
     estimatedTimeSignal = pyqtSignal(str)
     rankSignal = pyqtSignal(tuple)
     errorSignal = pyqtSignal(str)
+    actionSignal = pyqtSignal(str)
     resetIndicatorsSignal = pyqtSignal(bool)
     threadSignalFinished = pyqtSignal(int)
 
@@ -42,19 +43,21 @@ class ViewDownload(QWidget, Ui_MainWindow):
 
     def connectWidgets(self):
         self.pb_linkDL.clicked.connect(self.startSingleDownload)
-        self.progressSignal.connect(self.updateProgressBar)
-        self.estimatedTimeSignal.connect(self.showEstimatedTime)
-        self.rankSignal.connect(self.showRankOfDownload)
         self.pb_fileDL.clicked.connect(self.startListDownload)
-        self.pb_file.clicked.connect(self.setFilePath)
+        self.pb_file.clicked.connect(self.setFilePath) 
+
+        self.actionSignal.connect(self.actionsToConsole)
+        self.estimatedTimeSignal.connect(self.showEstimatedTime)
         self.errorSignal.connect(self.errorToConsole)
+        self.progressSignal.connect(self.updateProgressBar)
+        self.rankSignal.connect(self.showRankOfDownload)
         self.resetIndicatorsSignal.connect(self.resetIndicators)
         self.threadSignalFinished.connect(self.killThread)
 
     def killThread(self, ID):
         if ID == 0:
             self.singleSongThread.quit()
-        if ID == 1:
+        elif ID == 1:
             self.listSongThread.quit()
         else:
             pass
@@ -63,18 +66,13 @@ class ViewDownload(QWidget, Ui_MainWindow):
         try:
             self.filePath = QFileDialog.getOpenFileName(self, "Select File")[0]
             if self.filePath == "":
-                raise ValueError("filePath is empty.")
-            fich = open(self.filePath, "r")
-            musicList = list(fich)
-            fich.close()
-            self.listSong = []
-            for j in musicList:
-                elem = j.replace("\n", "")
-                self.listSong.append(str(elem))
-            self.consoleView.showOnConsole("filePath found !", "green")
+                raise ValueError("filePath is empty")
+            self.listSong = self.getUrl(self.filePath)
             self.ind_file.setStyleSheet("QCheckBox::indicator{background-color: rgb(0,255,0);}")
-            listLen = f"{len(self.listSong)} Songs"
-            self.ind_song.setText(listLen)
+            listLen = len(self.listSong)
+            text = f"{listLen} songs"
+            self.ind_song.setText(text)
+            self.actionSignal.emit(f"{listLen} url loaded")
         except Exception as error:
             error = str(error)
             self.ind_file.setStyleSheet("QCheckBox::indicator{background-color: rgb(255,0,0);}")
@@ -84,49 +82,54 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.listSongThread.requestInterruption()
         self.singleSongThread.requestInterruption()
         self.pBar_download.setValue(0)
-        print("startSingleDownload")
         self.singleSongThread.start()
 
     def startListDownload(self):
         self.listSongThread.requestInterruption()
         self.singleSongThread.requestInterruption()
         self.pBar_download.setValue(0)
-        print("startListDownload")
         self.listSongThread.start()
 
     def downloadMultipleSong(self):
-        print("downloadMultipleSong")
         try:
-            self.failedDownload = [] # Finish this part.
+            self.actionSignal.emit("Start list download")
+            self.failedDownload = []
             listSong = self.listSong
             lenght = len(listSong)
 
-            rank = 0
-            for url in listSong:
+            for rank, url in enumerate(listSong):
                 try:
-                    rank += 1
+                    rank = rank + 1
                     self.rankSignal.emit((rank, lenght))
                     self.model.downloadMusicFile(url)
-                except Exception as e:
+                    self.actionSignal.emit(f"Download {rank}/{lenght} complete")
+                except Exception as error:
+                    error = str(error)
+                    self.errorSignal.emit(f"Download {rank}/{lenght} failed")
+                    self.errorSignal.emit(error)
                     self.failedDownload.append(url)
+            # TODO Create file with failedDownload url in.
             self.resetIndicatorsSignal.emit(True)
             self.threadSignalFinished.emit(1)
+            self.actionSignal.emit("List download complete")
         except Exception as error:
             error = str(error)
             self.errorSignal.connect(error)
             self.resetIndicatorsSignal.emit(True)
 
     def downloadSingleSong(self):
-        print("downloadSingleSong")
         try:
+            self.actionSignal.emit("Start single download")
             url = self.le_link.text()
             if url == "":
-                raise ValueError("url is empty.")
+                raise ValueError("url is empty")
             self.rankSignal.emit((1,1))
             self.model.downloadMusicFile(url)
             self.threadSignalFinished.emit(0)
+            self.actionSignal.emit("Single download complete")
         except Exception as error:
             error = str(error)
+            self.actionSignal.emit("Single download interrupted")
             self.errorSignal.emit(error)
             self.resetIndicatorsSignal.emit(True)
 
@@ -144,6 +147,9 @@ class ViewDownload(QWidget, Ui_MainWindow):
     def errorToConsole(self, error):
         self.consoleView.showOnConsole(error, "red")
 
+    def actionsToConsole(self, action):
+        self.consoleView.showOnConsole(action, "green")
+
     def resetIndicators(self, bool):
         self.ind_download.setText("")
         self.ind_count.setText("")
@@ -151,11 +157,27 @@ class ViewDownload(QWidget, Ui_MainWindow):
     def callableHook(self, response):
         if response["status"] == "downloading":
             downloadPercent = round((response["downloaded_bytes"]*100)/response["total_bytes"],0)
-            eta = response["eta"]
-            if eta < 60:
-                estimatedTime = f"{eta}s"
+            time = response["eta"]
+            if time < 60:
+                estimatedTime = f"{time}s"
+            elif time < 3600:
+                estimatedTime = f"{time//60}min{time%60}s"
             else:
-                estimatedTime = f"{eta//60}min{eta%60}s"
+                estimatedTime = f"{time//3600}h{time//60}min{time%60}s"
 
             self.progressSignal.emit(downloadPercent)
             self.estimatedTimeSignal.emit(estimatedTime)
+
+    def getUrl(self, path):
+        if type(path) is not str:
+            raise TypeError("path argument is not a string")
+
+        fich = open(path, "r")
+        fich_str = list(fich)
+        fich.close()
+        url = []
+        for i in fich_str:
+            elem = i.replace("\n", "")
+            if elem.find("https://www.youtube.com/watch?v=") > -1:
+                url.append(elem)
+        return url

@@ -21,6 +21,7 @@ class ViewConsole(QWidget, Ui_MainWindow):
         Return:
             None
         """
+        text = "> " + text
         if color == "red":
             HEX = "#ff0000"
         elif color == "green":
