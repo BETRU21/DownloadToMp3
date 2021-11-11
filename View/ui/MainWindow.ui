@@ -15,7 +15,8 @@
   </property>
   <property name="styleSheet">
    <string notr="true">background-color: rgb(49, 54, 65);
-color: rgb(255, 255, 255);</string>
+color: rgb(255, 255, 255);
+</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout"/>
