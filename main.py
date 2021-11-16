@@ -13,13 +13,13 @@ if sys.platform == "win32":
 else:
     pass
 
-application_path = os.path.abspath("")
+applicationPath = os.path.abspath("")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     win = Window()
-    win.setWindowIcon(QIcon(application_path + "{0}View{0}logo{0}logo.ico".format(os.sep)))
+    win.setWindowIcon(QIcon(applicationPath + "{0}View{0}logo{0}logo.ico".format(os.sep)))
     win.setWindowTitle("DownloadToMp3")
     win.show()
     sys.exit(app.exec_())

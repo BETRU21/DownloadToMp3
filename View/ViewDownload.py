@@ -1,9 +1,15 @@
 from PyQt5.QtWidgets import QWidget, QFileDialog
-from PyQt5.QtCore import pyqtSignal, QThread
+from PyQt5.QtCore import pyqtSignal, QThread, QMutex
 from PyQt5 import uic
 from Model.Download2Mp3 import Download2Mp3
 from tools.ThreadWorker import Worker
 import os
+
+# Utiliser un lock pour la variable self.language serait obligatoire
+
+# Vérifier si un autre thread est déjà lancé avant de partir un autre download
+
+applicationPath = os.path.abspath("")
 
 MainWindowPath = os.path.dirname(os.path.realpath(__file__)) + '/ui{}DownloadWindow.ui'.format(os.sep)
 Ui_MainWindow, QtBaseClass = uic.loadUiType(MainWindowPath)
@@ -23,6 +29,9 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.setupUi(self)
         self.connectWidgets()
         self.model = Download2Mp3(self.callableHook)
+        self.language = "english"
+        self.mutex = QMutex()
+        self.createLanguage()
         self.listSong = []
         self.failedDownload = []
 
@@ -62,6 +71,12 @@ class ViewDownload(QWidget, Ui_MainWindow):
         else:
             pass
 
+    def currentLanguage(self):
+        self.mutex.lock()
+        language = self.language
+        self.mutex.unlock()
+        return language
+
     def setFilePath(self):
         try:
             self.filePath = QFileDialog.getOpenFileName(self, "Select File")[0]
@@ -70,9 +85,15 @@ class ViewDownload(QWidget, Ui_MainWindow):
             self.listSong = self.getUrl(self.filePath)
             self.ind_file.setStyleSheet("QCheckBox::indicator{background-color: rgb(0,255,0);}")
             listLen = len(self.listSong)
-            text = f"{listLen} songs"
+            text = f"{listLen} url"
             self.ind_song.setText(text)
-            self.actionSignal.emit(f"{listLen} url loaded")
+
+            language = self.currentLanguage()
+            if language == "english":
+                self.actionSignal.emit(f"{listLen} url loaded") # TODO 1
+            else:
+                self.actionSignal.emit(f"{listLen} url enregistré")
+
         except Exception as error:
             error = str(error)
             self.ind_file.setStyleSheet("QCheckBox::indicator{background-color: rgb(255,0,0);}")
@@ -92,7 +113,12 @@ class ViewDownload(QWidget, Ui_MainWindow):
 
     def downloadMultipleSong(self):
         try:
-            self.actionSignal.emit("Start list download")
+            language = self.currentLanguage()
+            if language == "english":
+                self.actionSignal.emit("Start list download") # TODO 2
+            else:
+                self.actionSignal.emit("Lancement du téléchargement avec la liste")
+
             self.failedDownload = []
             listSong = self.listSong
             lenght = len(listSong)
@@ -102,34 +128,71 @@ class ViewDownload(QWidget, Ui_MainWindow):
                     rank = rank + 1
                     self.rankSignal.emit((rank, lenght))
                     self.model.downloadMusicFile(url)
-                    self.actionSignal.emit(f"Download {rank}/{lenght} complete")
+                    language = self.currentLanguage()
+                    if language == "english":
+                        self.actionSignal.emit(f"Download {rank}/{lenght} complete") # TODO 3
+                    else:
+                        self.actionSignal.emit(f"Téléchargement {rank}/{lenght} complété")
                 except Exception as error:
                     error = str(error)
-                    self.errorSignal.emit(f"Download {rank}/{lenght} failed")
+                    language = self.currentLanguage()
+                    if language == "english":
+                        self.errorSignal.emit(f"Download {rank}/{lenght} failed") # TODO 4
+                    else:
+                        self.errorSignal.emit(f"Téléchargement {rank}/{lenght} interrompu")
                     self.errorSignal.emit(error)
                     self.failedDownload.append(url)
-            # TODO Create file with failedDownload url in.
+
+            self.createfailDownloadFile()
             self.resetIndicatorsSignal.emit(True)
             self.threadSignalFinished.emit(1)
-            self.actionSignal.emit("List download complete")
+            language = self.currentLanguage()
+            if language == "english":
+                self.actionSignal.emit("List download complete") # TODO 5
+            else:
+                self.actionSignal.emit("Téléchargement de la liste terminé")
         except Exception as error:
             error = str(error)
+            language = self.currentLanguage()
+            if language == "english":
+                self.errorSignal.emit("List download interrupted") # TODO 6
+            else:
+                self.errorSignal.emit("Téléchargement de la liste interrompu")
             self.errorSignal.connect(error)
             self.resetIndicatorsSignal.emit(True)
 
     def downloadSingleSong(self):
         try:
-            self.actionSignal.emit("Start single download")
+            language = self.currentLanguage()
+            if language == "english":
+                self.actionSignal.emit("Start single download") # TODO 7
+            else:
+                self.actionSignal.emit("Lancement du téléchargement avec url")
             url = self.le_link.text()
             if url == "":
-                raise ValueError("url is empty")
+                language = self.currentLanguage()
+                if language == "english":
+                    raise ValueError("url is empty") # TODO 8
+                else:
+                    raise ValueError("L'url est vide")
+            self.failedDownload = []
             self.rankSignal.emit((1,1))
             self.model.downloadMusicFile(url)
+            self.createfailDownloadFile()
+            self.resetIndicatorsSignal.emit(True)
             self.threadSignalFinished.emit(0)
-            self.actionSignal.emit("Single download complete")
+            language = self.currentLanguage()
+            if language == "english":
+                self.actionSignal.emit("Single download complete") # TODO 9
+            else:
+                self.actionSignal.emit("Téléchargement avec url complété")
         except Exception as error:
             error = str(error)
-            self.actionSignal.emit("Single download interrupted")
+            language = self.currentLanguage()
+            if language == "english":
+                self.errorSignal.emit("Single download interrupted") # TODO 10
+            else:
+                self.errorSignal.emit("Téléchargement avec url interrompu")
             self.errorSignal.emit(error)
             self.resetIndicatorsSignal.emit(True)
 
@@ -168,10 +231,27 @@ class ViewDownload(QWidget, Ui_MainWindow):
             self.progressSignal.emit(downloadPercent)
             self.estimatedTimeSignal.emit(estimatedTime)
 
-    def getUrl(self, path):
-        if type(path) is not str:
-            raise TypeError("path argument is not a string")
+    def createfailDownloadFile(self):
+        if self.failedDownload != []:
+            folder = applicationPath + "/failedDownloadFile"
+            path = os.path.join(folder, f"failedDownload")
+            with open(path + ".txt", "w+") as f:
+                for i, link in enumerate(self.failedDownload):
+                    lenn = len(self.failedDownload)
+                    if (i + 1) == lenn:
+                        f.wrote(f"{link}")
+                    else:
+                        f.write(f"{link}\n")
+                f.close()
+            language = self.currentLanguage()
+            if language == "english":
+                self.actionSignal.emit("failedDownload file create at :") # TODO 11
+            else:
+                self.actionSignal.emit("Fichier failedDownload créer à l'emplacement :")
+            self.actionSignal.emit(folder)
 
+
+    def getUrl(self, path):
         fich = open(path, "r")
         fich_str = list(fich)
         fich.close()
@@ -181,3 +261,36 @@ class ViewDownload(QWidget, Ui_MainWindow):
             if elem.find("https://www.youtube.com/watch?v=") > -1:
                 url.append(elem)
         return url
+
+    def changeLanguage(self, language):
+        self.mutex.lock()
+        self.language = language
+        self.mutex.unlock()
+        self.gb_link.setTitle(self.widgetLabel.get(language).get("gb_link"))
+        self.gb_list.setTitle(self.widgetLabel.get(language).get("gb_list"))
+        self.pb_linkDL.setText(self.widgetLabel.get(language).get("pb_linkDL"))
+        self.pb_file.setText(self.widgetLabel.get(language).get("pb_file"))
+        self.pb_fileDL.setText(self.widgetLabel.get(language).get("pb_fileDL"))
+
+    def createLanguage(self):
+        self.widgetLabel = {"french": {}, "english": {}}
+        self.errorMessage = {"french": {}, "english": {}}
+
+        self.widgetLabel["french"]["gb_link"] = "Téléchargement avec un lien"
+        self.widgetLabel["english"]["gb_link"] = "Link Download"
+        self.widgetLabel["french"]["gb_list"] = "Téléchargement avec une liste"
+        self.widgetLabel["english"]["gb_list"] = "List Download"
+        self.widgetLabel["french"]["pb_linkDL"] = "Télécharger"
+        self.widgetLabel["english"]["pb_linkDL"] = "Start Download"
+        self.widgetLabel["french"]["pb_file"] = "Sélectionner un fichier"
+        self.widgetLabel["english"]["pb_file"] = "Select File"
+        self.widgetLabel["french"]["pb_fileDL"] = "Télécharger"
+        self.widgetLabel["english"]["pb_fileDL"] = "Start Download"
+        # self.widgetLabel["french"][""] = ""
+        # self.widgetLabel["english"][""] = ""
+
+        # self.errorMessage["french"][""] = ""
+        # self.errorMessage["english"][""] = ""
+
+        # self.errorMessage["french"]["VD#01"] = "url enregistré"
+        # self.errorMessage["english"]["VD#01"] = "url loaded"

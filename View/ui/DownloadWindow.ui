@@ -81,7 +81,7 @@
         <string notr="true"/>
        </property>
        <property name="title">
-        <string>List download</string>
+        <string>List Download</string>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
