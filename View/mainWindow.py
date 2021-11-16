@@ -25,6 +25,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if language == "english":
             pass
         else:
+            self.tabWidget.setTabText(0,"Download")
             self.downloadView.changeLanguage("english")
 
     def changeLanguageFrench(self):
@@ -32,6 +33,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if language == "french":
             pass
         else:
+            self.tabWidget.setTabText(0,"Téléchargement")
             self.downloadView.changeLanguage("french")
 
     def setupWindowTabs(self):

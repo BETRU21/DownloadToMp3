@@ -13,14 +13,6 @@ class ViewConsole(QWidget, Ui_MainWindow):
         self.te_Console.clear()
 
     def showOnConsole(self, text, color=None):
-        """Show text on the console view.
-        Args:
-            text(str): The text to show on console.
-            [Facultative]
-            color(str): "red" or "green"
-        Return:
-            None
-        """
         text = "> " + text
         if color == "red":
             HEX = "#ff0000"
