@@ -40,8 +40,9 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.createThreads()
 
     def connectWidgets(self):
-        self.pb_linkDL.clicked.connect(self.startSingleDownload)
-        self.pb_fileDL.clicked.connect(self.startListDownload)
+        self.pb_linkDL.clicked.connect(self.confirmDownloadType)
+        self.pb_fileDL.clicked.connect(self.confirmDownloadType)
+
         self.pb_file.clicked.connect(self.setFilePath) 
 
         self.actionSignal.connect(self.actionsToConsole)
@@ -51,6 +52,43 @@ class ViewDownload(QWidget, Ui_MainWindow):
         self.rankSignal.connect(self.showRankOfDownload)
         self.resetIndicatorsSignal.connect(self.resetIndicators)
         self.threadSignalFinished.connect(self.killThread)
+
+    def confirmDownloadType(self):
+        sender = str(self.sender().objectName())
+        try:
+            if sender == "pb_linkDL":
+                url = self.le_link.text()
+                if url == "":
+                    language = self.currentLanguage()
+                    if language == "english":
+                        raise ValueError("url is empty")
+                    else:
+                        raise ValueError("L'url est vide")
+
+                if url.find("list") > 0:
+                    self.getPlaylistUrl(url)
+                    self.startListDownload()
+                else:
+                    self.startSingleDownload()
+            elif sender == "pb_fileDL":
+                self.startListDownload()
+            else:
+                print("Error")
+        except Exception as e:
+            e = str(e)
+            self.errorToConsole(e)
+
+    def getPlaylistUrl(self, url):
+        self.listSong = self.model.getPlaylistUrl(url)
+        self.ind_file.setStyleSheet("QCheckBox::indicator{background-color: rgb(0,255,0);}")
+        listLen = len(self.listSong)
+        text = f"{listLen} url"
+        self.ind_song.setText(text)
+        language = self.currentLanguage()
+        if language == "english":
+            self.actionSignal.emit(f"{listLen} url loaded")
+        else:
+            self.actionSignal.emit(f"{listLen} url enregistré")
 
     # Thread Section
 
@@ -94,13 +132,6 @@ class ViewDownload(QWidget, Ui_MainWindow):
                 self.actionSignal.emit("Start single download")
             else:
                 self.actionSignal.emit("Lancement du téléchargement avec url")
-            url = self.le_link.text()
-            if url == "":
-                language = self.currentLanguage()
-                if language == "english":
-                    raise ValueError("url is empty")
-                else:
-                    raise ValueError("L'url est vide")
             self.failedDownload = []
             self.rankSignal.emit((1,1))
             self.model.downloadMusicFile(url)

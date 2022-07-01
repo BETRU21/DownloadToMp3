@@ -7,6 +7,20 @@ class Download2Mp3:
         self.setupDownloadParam()
 
     # Public functions
+    def getPlaylistUrl(self, url):
+        ydlPlaylist = youtube_dl.YoutubeDL({'dump_single_json': True, 'extract_flat' : True})
+        with ydlPlaylist:
+            result = ydlPlaylist.extract_info(url, False)
+        listSong = []
+        try:
+            numberSong = len(result.get("entries"))
+        except:
+            raise ValueError("This playlist is not valid for this action")
+        for i in range(numberSong):
+            ids = result.get("entries")[i].get("id")
+            listSong.append(f"https://www.youtube.com/watch?v={ids}")
+        return listSong
+
 
     def downloadMusicFile(self, url):
         if type(url) is not str:
