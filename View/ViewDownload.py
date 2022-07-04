@@ -134,6 +134,7 @@ class ViewDownload(QWidget, Ui_MainWindow):
                 self.actionSignal.emit("Lancement du téléchargement avec url")
             self.failedDownload = []
             self.rankSignal.emit((1,1))
+            url = self.le_link.text()
             self.model.downloadMusicFile(url)
             self.createfailDownloadFile()
             self.resetIndicatorsSignal.emit(True)
