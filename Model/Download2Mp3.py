@@ -1,4 +1,5 @@
-import youtube_dl
+#import youtube_dl
+from yt_dlp import YoutubeDL
 
 class Download2Mp3:
     def __init__(self, CallableHook=None):
@@ -8,7 +9,7 @@ class Download2Mp3:
 
     # Public functions
     def getPlaylistUrl(self, url):
-        ydlPlaylist = youtube_dl.YoutubeDL({'dump_single_json': True, 'extract_flat' : True})
+        ydlPlaylist = YoutubeDL({'dump_single_json': True, 'extract_flat' : True})
         with ydlPlaylist:
             result = ydlPlaylist.extract_info(url, False)
         listSong = []
@@ -26,7 +27,7 @@ class Download2Mp3:
         if type(url) is not str:
             raise TypeError("url argument is not a string.")
         try:
-            with youtube_dl.YoutubeDL(self.ydlParams) as ydl:
+            with YoutubeDL(self.ydlParams) as ydl:
                 ydl.download([url])
         except Exception as e:
             e = str(e)
@@ -41,6 +42,7 @@ class Download2Mp3:
     def setupDownloadParam(self):
         if self.hook == None:
             self.ydlParams = {
+            'quiet': True,
             'outtmpl': 'downloadMusics/%(title)s.%(ext)s',
             'noplaylist': True,
             'format': 'bestaudio/best',
@@ -50,6 +52,7 @@ class Download2Mp3:
             'preferredquality': '192',}],}
         else:
             self.ydlParams = {
+            'quiet': True,
             "progress_hooks": [self.hook],
             'outtmpl': 'downloadMusics/%(title)s.%(ext)s',
             'noplaylist': True,

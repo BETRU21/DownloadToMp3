@@ -278,10 +278,11 @@ class ViewDownload(QWidget, Ui_MainWindow):
     def resetIndicators(self, bool):
         self.ind_download.setText("")
         self.ind_count.setText("")
+        self.pBar_download.setValue(100)
 
     def callableHook(self, response):
         if response["status"] == "downloading":
-            downloadPercent = round((response["downloaded_bytes"]*100)/response["total_bytes"],0)
+            downloadPercent = round((response["downloaded_bytes"]*100)/response["total_bytes_estimate"],0)
             time = response["eta"]
             if time < 60:
                 estimatedTime = f"{time}s"
